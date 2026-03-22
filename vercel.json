@@ -5,10 +5,10 @@
       "src": "api/index.js",
       "use": "@vercel/node",
       "config": {
+        "bundle": false,
         "maxDuration": 60,
         "memory": 1024,
-        "includeFiles": ["model/best_model.onnx", "lib/**"],
-        "bundle": false
+        "includeFiles": ["model/best_model.onnx", "lib/**"]
       }
     }
   ],
