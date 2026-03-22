@@ -8,7 +8,12 @@
         "bundle": false,
         "maxDuration": 60,
         "memory": 1024,
-        "includeFiles": ["model/best_model.onnx", "lib/**"]
+        "includeFiles": [
+          "model/best_model.onnx",
+          "lib/**",
+          "node_modules/onnxruntime-web/dist/*.wasm",
+          "node_modules/onnxruntime-web/dist/*.mjs"
+        ]
       }
     }
   ],
