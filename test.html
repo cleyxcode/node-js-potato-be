@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Potato Disease Detector</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f5f5f0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      padding: 32px;
+      width: 100%;
+      max-width: 480px;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      color: #1a1a1a;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 0.85rem;
+      color: #888;
+      margin-bottom: 24px;
+    }
+
+    .api-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .api-row input {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      color: #333;
+    }
+
+    .api-row button {
+      padding: 8px 14px;
+      background: #4a7c59;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+
+    .drop-zone {
+      border: 2px dashed #ccc;
+      border-radius: 12px;
+      padding: 36px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+    }
+
+    .drop-zone:hover, .drop-zone.dragging {
+      border-color: #4a7c59;
+      background: #f0f7f2;
+    }
+
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .drop-icon { font-size: 2.4rem; margin-bottom: 8px; }
+
+    .drop-text {
+      font-size: 0.9rem;
+      color: #555;
+    }
+
+    .drop-hint {
+      font-size: 0.75rem;
+      color: #aaa;
+      margin-top: 4px;
+    }
+
+    #preview-wrap {
+      display: none;
+      margin-top: 16px;
+      text-align: center;
+    }
+
+    #preview {
+      max-width: 100%;
+      max-height: 220px;
+      border-radius: 10px;
+      object-fit: contain;
+      border: 1px solid #eee;
+    }
+
+    .btn-predict {
+      width: 100%;
+      margin-top: 16px;
+      padding: 12px;
+      background: #4a7c59;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-predict:hover { background: #3a6347; }
+    .btn-predict:disabled { background: #aaa; cursor: not-allowed; }
+
+    #result {
+      margin-top: 20px;
+      display: none;
+    }
+
+    .result-label {
+      font-size: 0.75rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+
+    .result-class {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+
+    .result-confidence {
+      font-size: 0.9rem;
+      color: #4a7c59;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+
+    .bar-wrap {
+      margin-bottom: 8px;
+    }
+
+    .bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: #555;
+      margin-bottom: 3px;
+    }
+
+    .bar-track {
+      background: #eee;
+      border-radius: 99px;
+      height: 8px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      background: #4a7c59;
+      transition: width 0.5s ease;
+    }
+
+    .error-box {
+      background: #fff0f0;
+      color: #c0392b;
+      border: 1px solid #f5c6cb;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.85rem;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 18px; height: 18px;
+      border: 2px solid #fff;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🥔 Potato Disease Detector</h1>
+    <p class="subtitle">Upload gambar daun kentang untuk deteksi penyakit</p>
+
+    <div class="api-row">
+      <input type="text" id="api-url" value="http://localhost:8000" placeholder="API URL" />
+      <button onclick="saveUrl()">Simpan</button>
+    </div>
+
+    <div class="drop-zone" id="drop-zone">
+      <input type="file" id="file-input" accept="image/jpeg,image/png" />
+      <div class="drop-icon">🖼️</div>
+      <div class="drop-text">Klik atau drag & drop gambar</div>
+      <div class="drop-hint">JPG / PNG · Maks 5MB</div>
+    </div>
+
+    <div id="preview-wrap">
+      <img id="preview" alt="Preview" />
+    </div>
+
+    <button class="btn-predict" id="btn-predict" onclick="predict()" disabled>
+      Deteksi Penyakit
+    </button>
+
+    <div id="result"></div>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById('file-input');
+    const dropZone = document.getElementById('drop-zone');
+    const preview = document.getElementById('preview');
+    const previewWrap = document.getElementById('preview-wrap');
+    const btnPredict = document.getElementById('btn-predict');
+    const resultDiv = document.getElementById('result');
+    let selectedFile = null;
+
+    // Restore saved URL
+    const saved = localStorage.getItem('api_url');
+    if (saved) document.getElementById('api-url').value = saved;
+
+    function saveUrl() {
+      const url = document.getElementById('api-url').value.trim().replace(/\/$/, '');
+      localStorage.setItem('api_url', url);
+      document.getElementById('api-url').value = url;
+      alert('URL disimpan: ' + url);
+    }
+
+    function getApiUrl() {
+      return document.getElementById('api-url').value.trim().replace(/\/$/, '');
+    }
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) setFile(fileInput.files[0]);
+    });
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragging');
+    });
+
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragging'));
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragging');
+      const f = e.dataTransfer.files[0];
+      if (f) setFile(f);
+    });
+
+    function setFile(file) {
+      selectedFile = file;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        preview.src = e.target.result;
+        previewWrap.style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+      btnPredict.disabled = false;
+      resultDiv.style.display = 'none';
+    }
+
+    async function predict() {
+      if (!selectedFile) return;
+
+      btnPredict.disabled = true;
+      btnPredict.innerHTML = '<span class="spinner"></span>Memproses...';
+      resultDiv.style.display = 'none';
+
+      const formData = new FormData();
+      formData.append('image', selectedFile);
+
+      try {
+        const res = await fetch(`${getApiUrl()}/predict`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          showError(data.detail || 'Terjadi kesalahan pada server.');
+          return;
+        }
+
+        showResult(data);
+      } catch (err) {
+        showError('Tidak dapat terhubung ke API. Pastikan server berjalan dan URL benar.');
+      } finally {
+        btnPredict.disabled = false;
+        btnPredict.innerHTML = 'Deteksi Penyakit';
+      }
+    }
+
+    function showResult(data) {
+      const preds = data.all_predictions || {};
+      const bars = Object.entries(preds).map(([name, pct]) => {
+        const val = parseFloat(pct);
+        const isTop = name === data.class;
+        return `
+          <div class="bar-wrap">
+            <div class="bar-label"><span>${name}</span><span>${pct}</span></div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:${val}%;${isTop ? 'background:#4a7c59' : 'background:#b2d1bc'}"></div>
+            </div>
+          </div>`;
+      }).join('');
+
+      resultDiv.innerHTML = `
+        <div class="result-label">Hasil Deteksi</div>
+        <div class="result-class">${data.class}</div>
+        <div class="result-confidence">Confidence: ${data.confidence}</div>
+        ${bars}
+      `;
+      resultDiv.style.display = 'block';
+    }
+
+    function showError(msg) {
+      resultDiv.innerHTML = `<div class="error-box">⚠️ ${msg}</div>`;
+      resultDiv.style.display = 'block';
+    }
+  </script>
+</body>
+</html>
